@@ -39,7 +39,6 @@ public class MusicListViewModel extends AndroidViewModel {
                 if (cur != null) {
                     if (cur.moveToFirst()) {
                         do {
-                            System.out.println("------------------------");
                             Song song = Song.fromCursor(cur);
                             songs.add(song);
                         } while (cur.moveToNext());
@@ -50,6 +49,30 @@ public class MusicListViewModel extends AndroidViewModel {
 
             }).start();
         }
+        return songData;
+    }
+
+    public LiveData<List<Song>> reloadData() {
+        songData = new MutableLiveData<>();
+        new Thread(() -> {
+            ContentResolver cr = getApplication().getContentResolver();
+            Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+            String selection = MediaStore.Audio.Media.IS_MUSIC + "!= 0";
+            String sortOrder = MediaStore.Audio.Media.TITLE + " ASC";
+            Cursor cur = cr.query(uri, null, selection, null, sortOrder);
+            List<Song> songs = new ArrayList<>();
+            if (cur != null) {
+                if (cur.moveToFirst()) {
+                    do {
+                        Song song = Song.fromCursor(cur);
+                        songs.add(song);
+                    } while (cur.moveToNext());
+                }
+            }
+            cur.close();
+            songData.postValue(songs);
+
+        }).start();
         return songData;
     }
 }

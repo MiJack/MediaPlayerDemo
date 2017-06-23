@@ -3,19 +3,24 @@ package cn.mijack.mediaplayerdemo.fragment;
 import android.Manifest;
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.RemoteException;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.media.MediaBrowserCompat;
+import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,6 +33,7 @@ import cn.mijack.mediaplayerdemo.R;
 import cn.mijack.mediaplayerdemo.adapter.MusicAdapter;
 import cn.mijack.mediaplayerdemo.base.BaseFragment;
 import cn.mijack.mediaplayerdemo.model.Song;
+import cn.mijack.mediaplayerdemo.remote.MediaPlaybackService;
 import cn.mijack.mediaplayerdemo.vm.MusicListViewModel;
 
 /**
@@ -37,8 +43,63 @@ import cn.mijack.mediaplayerdemo.vm.MusicListViewModel;
 public class MusicListFragment extends BaseFragment implements SwipeRefreshLayout.OnRefreshListener {
     private static final int REQUEST_CODE_PERMISSION_READ = 1;
     private static final int REQUEST_CODE_CHANGE_PERMISSION = 2;
+    private static final String TAG = "MusicListFragment";
     MusicListViewModel musicListViewModel;
     private MusicAdapter adapter;
+    private RecyclerView recyclerView;
+    private SwipeRefreshLayout refreshLayout;
+    Observer<List<Song>> observer = songs -> {
+        refreshLayout.setRefreshing(false);
+        adapter.setData(songs);
+    };
+    private MediaBrowserCompat mMediaBrowser;
+    public String mMediaId;
+    private MediaBrowserCompat.SubscriptionCallback mSubscriptionCallback =
+            new MediaBrowserCompat.SubscriptionCallback() {
+            };
+    private MediaControllerCompat.Callback mControllerCallback =
+            new MediaControllerCompat.Callback() {
+
+            };
+    private MediaBrowserCompat.ConnectionCallback mConnectionCallback =
+            new MediaBrowserCompat.ConnectionCallback() {
+
+                @Override
+                public void onConnected() {
+                    Log.d(TAG, "onConnected: ");
+                    mMediaId = mMediaBrowser.getRoot();
+                    mMediaBrowser.subscribe(mMediaId, mSubscriptionCallback);
+                    try {
+                        MediaControllerCompat mediaController =
+                                new MediaControllerCompat(getActivity(),
+                                        mMediaBrowser.getSessionToken());
+                        MediaControllerCompat.setMediaController(getActivity(), mediaController);
+
+                        // Register a Callback to stay in sync
+                        mediaController.registerCallback(mControllerCallback);
+                    } catch (RemoteException e) {
+                        Log.e(TAG, "Failed to connect to MediaController", e);
+                    }
+                }
+
+                @Override
+                public void onConnectionSuspended() {
+                    Log.d(TAG, "onConnectionSuspended: ");
+//                    Log.d(TAG, "onConnectionSuspended");
+                    MediaControllerCompat mediaController = MediaControllerCompat
+                            .getMediaController(getActivity());
+
+                    if (mediaController != null) {
+                        mediaController.unregisterCallback(mControllerCallback);
+                        MediaControllerCompat.setMediaController(getActivity(), null);
+                    }
+                }
+
+                @Override
+                public void onConnectionFailed() {
+                    Log.d(TAG, "onConnectionFailed: ");
+                }
+            };
 
     @Nullable
     @Override
@@ -49,16 +110,32 @@ public class MusicListFragment extends BaseFragment implements SwipeRefreshLayou
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        RecyclerView recyclerView = (RecyclerView) view.findViewById(R.id.recyclerView);
-        SwipeRefreshLayout refreshLayout = (SwipeRefreshLayout) view.findViewById(R.id.refreshView);
+        recyclerView = (RecyclerView) view.findViewById(R.id.recyclerView);
+        refreshLayout = (SwipeRefreshLayout) view.findViewById(R.id.refreshView);
         refreshLayout.setOnRefreshListener(this);
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getActivity());
         recyclerView.setLayoutManager(linearLayoutManager);
-        adapter = new MusicAdapter();
+        adapter = new MusicAdapter(getActivity());
         recyclerView.setAdapter(adapter);
         musicListViewModel = ViewModelProviders.of(getActivity()).get(MusicListViewModel.class);
         loadData();
+        mMediaBrowser = new MediaBrowserCompat(getActivity(),
+                new ComponentName(getActivity(), MediaPlaybackService.class),
+                mConnectionCallback, null);
     }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        mMediaBrowser.connect();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        mMediaBrowser.disconnect();
+    }
+
 
     private void loadData() {
         if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
@@ -80,7 +157,7 @@ public class MusicListFragment extends BaseFragment implements SwipeRefreshLayou
             }
         } else {
             musicListViewModel.loadData()
-                    .observe(this, songs -> adapter.setData(songs));
+                    .observe(this, observer);
         }
     }
 
@@ -90,7 +167,7 @@ public class MusicListFragment extends BaseFragment implements SwipeRefreshLayou
         if (requestCode == REQUEST_CODE_PERMISSION_READ) {
             if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(getActivity(), "开启权限失败", Toast.LENGTH_SHORT).show();
-            }else {
+            } else {
                 loadData();
             }
         }
@@ -98,6 +175,26 @@ public class MusicListFragment extends BaseFragment implements SwipeRefreshLayou
 
     @Override
     public void onRefresh() {
-        loadData();
+        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.READ_EXTERNAL_STORAGE))
+                new AlertDialog.Builder(getActivity()).setTitle("请求权限")
+                        .setTitle("截图保持在SD卡中，需要存储权限，请前往设置打开权限重试")
+                        .setCancelable(false)
+                        .setPositiveButton("确定", (dialog, which) -> {
+                            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                            Uri uri = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null);
+                            intent.setData(uri);
+                            startActivityForResult(intent, REQUEST_CODE_CHANGE_PERMISSION);
+                            dialog.dismiss();
+                        })
+                        .setNegativeButton("取消",
+                                (dialog, which) -> Toast.makeText(getActivity(), "权限请求失败，无法截图", Toast.LENGTH_SHORT).show()).create().show();
+            else {
+                requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE_PERMISSION_READ);
+            }
+        } else {
+            musicListViewModel.reloadData()
+                    .observe(this, observer);
+        }
     }
 }
