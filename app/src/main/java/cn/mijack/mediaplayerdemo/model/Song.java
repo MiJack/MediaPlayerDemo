@@ -1,7 +1,9 @@
 package cn.mijack.mediaplayerdemo.model;
 
 import android.database.Cursor;
+import android.os.Bundle;
 import android.provider.MediaStore;
+import android.support.v4.media.MediaMetadataCompat;
 
 import java.io.Serializable;
 
@@ -189,5 +191,25 @@ public class Song implements Serializable {
         song.setArtist(cur.getString(cur.getColumnIndex(MediaStore.Audio.Media.ARTIST)));
         song.setAlbum(cur.getString(cur.getColumnIndex(MediaStore.Audio.Media.ALBUM)));
         return song;
+    }
+
+    @Override
+    public String toString() {
+        return "Song{" +
+                "id=" + id +
+                ", data='" + data + '\'' +
+                ", displayName='" + displayName + '\'' +
+                ", size=" + size +
+                ", mimeType='" + mimeType + '\'' +
+                ", dateAdded=" + dateAdded +
+                ", dateModified=" + dateModified +
+                ", title='" + title + '\'' +
+                ", duration=" + duration +
+                ", artistId=" + artistId +
+                ", albumId=" + albumId +
+                ", albumArtist='" + albumArtist + '\'' +
+                ", artist='" + artist + '\'' +
+                ", album='" + album + '\'' +
+                '}';
     }
 }

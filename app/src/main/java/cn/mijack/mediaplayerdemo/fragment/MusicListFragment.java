@@ -3,25 +3,19 @@ package cn.mijack.mediaplayerdemo.fragment;
 import android.Manifest;
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
-import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.RemoteException;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.media.MediaBrowserCompat;
-import android.support.v4.media.MediaMetadataCompat;
-import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -34,7 +28,6 @@ import cn.mijack.mediaplayerdemo.R;
 import cn.mijack.mediaplayerdemo.adapter.MusicAdapter;
 import cn.mijack.mediaplayerdemo.base.BaseFragment;
 import cn.mijack.mediaplayerdemo.model.Song;
-import cn.mijack.mediaplayerdemo.remote.MediaPlaybackService;
 import cn.mijack.mediaplayerdemo.vm.MusicListViewModel;
 
 /**
@@ -53,60 +46,6 @@ public class MusicListFragment extends BaseFragment implements SwipeRefreshLayou
         refreshLayout.setRefreshing(false);
         adapter.setData(songs);
     };
-    private MediaBrowserCompat mMediaBrowser;
-    public String mMediaId;
-    private MediaBrowserCompat.SubscriptionCallback mSubscriptionCallback =
-            new MediaBrowserCompat.SubscriptionCallback() {
-            };
-    private MediaControllerCompat.Callback mControllerCallback =
-            new MediaControllerCompat.Callback() {
-                @Override
-                public void onMetadataChanged(MediaMetadataCompat metadata) {
-                    Log.d(TAG, "onMetadataChanged: ");
-                    if (metadata != null) {
-                        adapter.setCurrentMediaMetadata(metadata);
-                    }
-                }
-            };
-    private MediaBrowserCompat.ConnectionCallback mConnectionCallback =
-            new MediaBrowserCompat.ConnectionCallback() {
-
-                @Override
-                public void onConnected() {
-                    Log.d(TAG, "onConnected: ");
-                    mMediaId = mMediaBrowser.getRoot();
-                    mMediaBrowser.subscribe(mMediaId, mSubscriptionCallback);
-                    try {
-                        MediaControllerCompat mediaController =
-                                new MediaControllerCompat(getActivity(),
-                                        mMediaBrowser.getSessionToken());
-                        MediaControllerCompat.setMediaController(getActivity(), mediaController);
-
-                        // Register a Callback to stay in sync
-                        mediaController.registerCallback(mControllerCallback);
-                    } catch (RemoteException e) {
-                        Log.e(TAG, "Failed to connect to MediaController", e);
-                    }
-                }
-
-                @Override
-                public void onConnectionSuspended() {
-                    Log.d(TAG, "onConnectionSuspended: ");
-//                    Log.d(TAG, "onConnectionSuspended");
-                    MediaControllerCompat mediaController = MediaControllerCompat
-                            .getMediaController(getActivity());
-
-                    if (mediaController != null) {
-                        mediaController.unregisterCallback(mControllerCallback);
-                        MediaControllerCompat.setMediaController(getActivity(), null);
-                    }
-                }
-
-                @Override
-                public void onConnectionFailed() {
-                    Log.d(TAG, "onConnectionFailed: ");
-                }
-            };
 
     @Nullable
     @Override
@@ -126,21 +65,6 @@ public class MusicListFragment extends BaseFragment implements SwipeRefreshLayou
         recyclerView.setAdapter(adapter);
         musicListViewModel = ViewModelProviders.of(getActivity()).get(MusicListViewModel.class);
         loadData();
-        mMediaBrowser = new MediaBrowserCompat(getActivity(),
-                new ComponentName(getActivity(), MediaPlaybackService.class),
-                mConnectionCallback, null);
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-        mMediaBrowser.connect();
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-        mMediaBrowser.disconnect();
     }
 
 
