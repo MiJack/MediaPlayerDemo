@@ -15,6 +15,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.media.MediaBrowserCompat;
+import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
@@ -59,7 +60,13 @@ public class MusicListFragment extends BaseFragment implements SwipeRefreshLayou
             };
     private MediaControllerCompat.Callback mControllerCallback =
             new MediaControllerCompat.Callback() {
-
+                @Override
+                public void onMetadataChanged(MediaMetadataCompat metadata) {
+                    Log.d(TAG, "onMetadataChanged: ");
+                    if (metadata != null) {
+                        adapter.setCurrentMediaMetadata(metadata);
+                    }
+                }
             };
     private MediaBrowserCompat.ConnectionCallback mConnectionCallback =
             new MediaBrowserCompat.ConnectionCallback() {
@@ -139,7 +146,7 @@ public class MusicListFragment extends BaseFragment implements SwipeRefreshLayou
 
     private void loadData() {
         if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.READ_EXTERNAL_STORAGE))
+            if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.READ_EXTERNAL_STORAGE)) {
                 new AlertDialog.Builder(getActivity()).setTitle("请求权限")
                         .setTitle("截图保持在SD卡中，需要存储权限，请前往设置打开权限重试")
                         .setCancelable(false)
@@ -152,7 +159,7 @@ public class MusicListFragment extends BaseFragment implements SwipeRefreshLayou
                         })
                         .setNegativeButton("取消",
                                 (dialog, which) -> Toast.makeText(getActivity(), "权限请求失败，无法截图", Toast.LENGTH_SHORT).show()).create().show();
-            else {
+            } else {
                 requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE_PERMISSION_READ);
             }
         } else {
@@ -176,7 +183,7 @@ public class MusicListFragment extends BaseFragment implements SwipeRefreshLayou
     @Override
     public void onRefresh() {
         if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.READ_EXTERNAL_STORAGE))
+            if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.READ_EXTERNAL_STORAGE)) {
                 new AlertDialog.Builder(getActivity()).setTitle("请求权限")
                         .setTitle("截图保持在SD卡中，需要存储权限，请前往设置打开权限重试")
                         .setCancelable(false)
@@ -189,7 +196,7 @@ public class MusicListFragment extends BaseFragment implements SwipeRefreshLayou
                         })
                         .setNegativeButton("取消",
                                 (dialog, which) -> Toast.makeText(getActivity(), "权限请求失败，无法截图", Toast.LENGTH_SHORT).show()).create().show();
-            else {
+            } else {
                 requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE_PERMISSION_READ);
             }
         } else {

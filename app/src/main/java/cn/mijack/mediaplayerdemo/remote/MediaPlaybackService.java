@@ -9,8 +9,10 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaBrowserServiceCompat;
+import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaButtonReceiver;
+import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.text.TextUtils;
@@ -19,6 +21,7 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.List;
 
+import cn.mijack.mediaplayerdemo.core.MusicPlayer;
 import cn.mijack.mediaplayerdemo.ui.MainActivity;
 
 /**
@@ -36,6 +39,7 @@ public class MediaPlaybackService extends MediaBrowserServiceCompat {
 
     private MediaSessionCompat mSession;
     private PlaybackStateCompat.Builder mStateBuilder;
+    private MusicPlayer player;
 
     @Override
     public void onCreate() {
@@ -43,12 +47,12 @@ public class MediaPlaybackService extends MediaBrowserServiceCompat {
         super.onCreate();
         Log.d(TAG, "onCreate");
 
-//        mMusicProvider = new MusicProvider();
 
         // Start a new MediaSession.
         mSession = new MediaSessionCompat(this, TAG);
+        player = new MusicPlayer(this);
         setSessionToken(mSession.getSessionToken());
-        mSession.setCallback(new MediaSessionCallback());
+        mSession.setCallback(player);
         mSession.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS
                 | MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
 
@@ -155,51 +159,24 @@ public class MediaPlaybackService extends MediaBrowserServiceCompat {
         result.sendResult(mediaItems);
     }
 
-    private class MediaSessionCallback extends MediaSessionCompat.Callback {
-        @Override
-        public void onPlayFromMediaId(String mediaId, Bundle extras) {
-            Log.d(TAG, "playFromMediaId mediaId:" + mediaId + "  extras=" + extras);
-
-            // The mediaId used here is not the unique musicId. This one comes from the
-            // MediaBrowser, and is actually a "hierarchy-aware mediaID": a concatenation of
-            // the hierarchy in MediaBrowser and the actual unique musicID. This is necessary
-            // so we can build the correct playing queue, based on where the track was
-            // selected from.
-//            MediaMetadataCompat media = mMusicProvider.getMusic(mediaId);
-//            if (media != null) {
-//                mCurrentMedia =
-//                        new MediaSessionCompat.QueueItem(media.getDescription(), media.hashCode());
-//
-//                // play the music
-//                handlePlayRequest();
-//            }
+    public void updateMetadata(String mediaId, Bundle extras) {
+        if (!mSession.isActive()) {
+            mSession.setActive(true);
         }
-
-        @Override
-        public void onPlay() {
-            Log.d(TAG, "play");
-
-//            if (mCurrentMedia != null) {
-//                handlePlayRequest();
-//            }
-        }
-
-        @Override
-        public void onSeekTo(long position) {
-            Log.d(TAG, "onSeekTo:" + position);
-//            mPlayback.seekTo((int) position);
-        }
-
-        @Override
-        public void onPause() {
-//            Log.d(TAG, "pause. current state=" + mPlayback.getState());
-//            handlePauseRequest();
-        }
-
-        @Override
-        public void onStop() {
-//            Log.d(TAG, "stop. current state=" + mPlayback.getState());
-//            handleStopRequest();
-        }
+        MediaMetadataCompat metadataCompat = new MediaMetadataCompat.Builder()
+                .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, mediaId)
+//                .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI, source)
+//                .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, album)
+//                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
+//                .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
+//                .putString(MediaMetadataCompat.METADATA_KEY_GENRE, genre)
+//                .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, iconUrl)
+//                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
+//                .putLong(MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER, trackNumber)
+//                .putLong(MediaMetadataCompat.METADATA_KEY_NUM_TRACKS, totalTrackCount)
+                .build();
+        MediaMetadataCompat track = new MediaMetadataCompat.Builder(metadataCompat)
+                .build();
+        mSession.setMetadata(track);
     }
 }
