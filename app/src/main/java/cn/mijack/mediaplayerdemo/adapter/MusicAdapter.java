@@ -5,14 +5,17 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -33,6 +36,8 @@ public class MusicAdapter extends RecyclerView.Adapter {
     private Activity activity;
     private List<Song> data = new ArrayList<>();
     private static final String TAG = "MusicAdapter";
+    private String mCurrentMediaId;
+    private PlaybackStateCompat mPlaybackState;
 
     public MusicAdapter(Activity listener) {
         this.activity = listener;
@@ -50,11 +55,32 @@ public class MusicAdapter extends RecyclerView.Adapter {
         TextView singer = (TextView) holder.itemView.findViewById(R.id.singer);
         ImageView coverart = (ImageView) holder.itemView.findViewById(R.id.musicIcon);
         Song song = data.get(position);
-        songName.setText(song.getTitle());
+        String songId = String.valueOf(song.getId());
+        songName.setText(song.getTitle()+(songId.equals(getPlayingMediaId())?"playing":"--"));
         singer.setText(song.getArtist());
 
         Log.d(TAG, "onBindViewHolder: " + song.toString());
-        ImageLoader.getInstance().loadMusicCover(coverart,song.getData());
+        ImageLoader.getInstance().loadMusicCover(coverart, song.getData());
+//        if (item.isPlayable()) {
+//        int playRes =
+//                ? R.drawable.ic_equalizer_white_24dp
+//                : R.drawable.ic_play_arrow_white_24dp;
+        holder.itemView.setOnClickListener(v -> {
+            boolean isPlaying = songId.equals(getPlayingMediaId());
+            MediaControllerCompat controller = MediaControllerCompat.getMediaController(activity);
+            MediaControllerCompat.TransportControls controls = controller.getTransportControls();
+            if (isPlaying) {
+                controls.pause();
+            } else {
+                Bundle extras = new Bundle();
+                extras.putSerializable("data",song);
+                controls.playFromMediaId(songId, extras);
+            }
+        });
+//            holder.mImageView.setImageDrawable(getContext().getResources()
+//                    .getDrawable(playRes));
+//            holder.mImageView.setVisibility(View.VISIBLE);
+//        }
 //        new Thread() {
 //            @Override
 //            public void run() {
@@ -80,4 +106,22 @@ public class MusicAdapter extends RecyclerView.Adapter {
         }
         this.notifyDataSetChanged();
     }
+
+    @Nullable
+    public String getPlayingMediaId() {
+        boolean isPlaying = mPlaybackState != null
+                && mPlaybackState.getState() == PlaybackStateCompat.STATE_PLAYING;
+        return isPlaying ? mCurrentMediaId : null;
+    }
+
+    public void setCurrentMediaMetadata(MediaMetadataCompat mediaMetadata) {
+        mCurrentMediaId = mediaMetadata != null
+                ? mediaMetadata.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)
+                : null;
+    }
+
+    public void setPlaybackState(PlaybackStateCompat playbackState) {
+        mPlaybackState = playbackState;
+    }
+
 }

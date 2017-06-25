@@ -3,19 +3,26 @@ package cn.mijack.mediaplayerdemo.fragment;
 import android.Manifest;
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.RemoteException;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.media.MediaBrowserCompat;
+import android.support.v4.media.MediaMetadataCompat;
+import android.support.v4.media.session.MediaControllerCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,6 +35,7 @@ import cn.mijack.mediaplayerdemo.R;
 import cn.mijack.mediaplayerdemo.adapter.MusicAdapter;
 import cn.mijack.mediaplayerdemo.base.BaseFragment;
 import cn.mijack.mediaplayerdemo.model.Song;
+import cn.mijack.mediaplayerdemo.remote.MusicService;
 import cn.mijack.mediaplayerdemo.vm.MusicListViewModel;
 
 /**
@@ -46,6 +54,88 @@ public class MusicListFragment extends BaseFragment implements SwipeRefreshLayou
         refreshLayout.setRefreshing(false);
         adapter.setData(songs);
     };
+    private MediaBrowserCompat mMediaBrowser;
+
+    private MediaBrowserCompat.SubscriptionCallback mSubscriptionCallback =
+            new MediaBrowserCompat.SubscriptionCallback() {
+
+                @Override
+                public void onChildrenLoaded(String parentId,
+                                             List<MediaBrowserCompat.MediaItem> children) {
+//                    adapter.clear();
+//                    adapter.notifyDataSetInvalidated();
+//                    for (MediaBrowserCompat.MediaItem item : children) {
+//                        adapter.add(item);
+//                    }
+//                    adapter.notifyDataSetChanged();
+                }
+
+                @Override
+                public void onError(String id) {
+                    Toast.makeText(getActivity(), R.string.error_loading_media,
+                            Toast.LENGTH_LONG).show();
+                }
+            };
+
+    private String mMediaId;
+    private MediaBrowserCompat.ConnectionCallback mConnectionCallback =
+            new MediaBrowserCompat.ConnectionCallback() {
+                @Override
+                public void onConnected() {
+                    Log.d(TAG, "onConnected: session token " + mMediaBrowser.getSessionToken());
+
+                    if (mMediaId == null) {
+                        mMediaId = mMediaBrowser.getRoot();
+                    }
+
+                    mMediaBrowser.subscribe(mMediaId, mSubscriptionCallback);
+                    try {
+                        MediaControllerCompat mediaController =
+                                new MediaControllerCompat(getActivity(),
+                                        mMediaBrowser.getSessionToken());
+                        MediaControllerCompat.setMediaController(getActivity(), mediaController);
+
+                        // Register a Callback to stay in sync
+                        mediaController.registerCallback(mControllerCallback);
+                    } catch (RemoteException e) {
+                        Log.e(TAG, "Failed to connect to MediaController", e);
+                    }
+                }
+
+                @Override
+                public void onConnectionFailed() {
+                    Log.e(TAG, "onConnectionFailed");
+                }
+
+                @Override
+                public void onConnectionSuspended() {
+                    Log.d(TAG, "onConnectionSuspended");
+                    MediaControllerCompat mediaController = MediaControllerCompat
+                            .getMediaController(getActivity());
+
+                    if (mediaController != null) {
+                        mediaController.unregisterCallback(mControllerCallback);
+                        MediaControllerCompat.setMediaController(getActivity(), null);
+                    }
+                }
+            };
+
+    private MediaControllerCompat.Callback mControllerCallback =
+            new MediaControllerCompat.Callback() {
+                @Override
+                public void onMetadataChanged(MediaMetadataCompat metadata) {
+                    Log.d(TAG, "onMetadataChanged: ");
+                    if (metadata != null) {
+                        adapter.setCurrentMediaMetadata(metadata);
+                    }
+                }
+
+                @Override
+                public void onPlaybackStateChanged(PlaybackStateCompat state) {
+                    adapter.setPlaybackState(state);
+                    adapter.notifyDataSetChanged();
+                }
+            };
 
     @Nullable
     @Override
@@ -65,8 +155,23 @@ public class MusicListFragment extends BaseFragment implements SwipeRefreshLayou
         recyclerView.setAdapter(adapter);
         musicListViewModel = ViewModelProviders.of(getActivity()).get(MusicListViewModel.class);
         loadData();
+        mMediaBrowser = new MediaBrowserCompat(getActivity(),
+                new ComponentName(getActivity(), MusicService.class),
+                mConnectionCallback, null);
+
+     }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        mMediaBrowser.connect();
     }
 
+    @Override
+    public void onStop() {
+        super.onStop();
+        mMediaBrowser.disconnect();
+    }
 
     private void loadData() {
         if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {

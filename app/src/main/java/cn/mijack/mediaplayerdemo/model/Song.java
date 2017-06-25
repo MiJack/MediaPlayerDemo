@@ -3,6 +3,7 @@ package cn.mijack.mediaplayerdemo.model;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaMetadataCompat;
 
 import java.io.Serializable;
@@ -211,5 +212,18 @@ public class Song implements Serializable {
                 ", artist='" + artist + '\'' +
                 ", album='" + album + '\'' +
                 '}';
+    }
+
+    public MediaMetadataCompat toMediaMetadata() {
+        MediaMetadataCompat metadataCompat = new MediaMetadataCompat.Builder()
+                .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, String.valueOf(id))
+                .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI, data)
+                .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, album)
+                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
+                .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
+                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
+                .build();
+        metadataCompat.getDescription();
+        return metadataCompat;
     }
 }
