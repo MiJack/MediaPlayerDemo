@@ -54,17 +54,15 @@ public class MusicAdapter extends RecyclerView.Adapter {
         TextView songName = (TextView) holder.itemView.findViewById(R.id.songName);
         TextView singer = (TextView) holder.itemView.findViewById(R.id.singer);
         ImageView coverart = (ImageView) holder.itemView.findViewById(R.id.musicIcon);
+        ImageView icon = (ImageView) holder.itemView.findViewById(R.id.icon);
         Song song = data.get(position);
         String songId = String.valueOf(song.getId());
-        songName.setText(song.getTitle()+(songId.equals(getPlayingMediaId())?"playing":"--"));
+        boolean playing = songId.equals(getPlayingMediaId());
+        icon.setVisibility(playing ? View.VISIBLE : View.INVISIBLE);
+        songName.setText(song.getTitle());
         singer.setText(song.getArtist());
 
-        Log.d(TAG, "onBindViewHolder: " + song.toString());
         ImageLoader.getInstance().loadMusicCover(coverart, song.getData());
-//        if (item.isPlayable()) {
-//        int playRes =
-//                ? R.drawable.ic_equalizer_white_24dp
-//                : R.drawable.ic_play_arrow_white_24dp;
         holder.itemView.setOnClickListener(v -> {
             boolean isPlaying = songId.equals(getPlayingMediaId());
             MediaControllerCompat controller = MediaControllerCompat.getMediaController(activity);
@@ -73,7 +71,7 @@ public class MusicAdapter extends RecyclerView.Adapter {
                 controls.pause();
             } else {
                 Bundle extras = new Bundle();
-                extras.putSerializable("data",song);
+                extras.putSerializable("data", song);
                 controls.playFromMediaId(songId, extras);
             }
         });

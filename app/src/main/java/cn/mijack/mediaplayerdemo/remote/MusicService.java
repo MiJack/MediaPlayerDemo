@@ -40,6 +40,7 @@ public class MusicService extends MediaBrowserServiceCompat {
     private static final String TAG = "MusicService";
     private static final int REQUEST_CODE = 1;
     private static final int STOP_CMD = 2;
+    private static final long STOP_DELAY = 30;
     private MediaSessionCompat mSession;
     private Playback mPlayback;
     private NotificationManagerCompat mNotificationManager;
@@ -157,6 +158,7 @@ public class MusicService extends MediaBrowserServiceCompat {
         mSession.setPlaybackState(stateBuilder.build());
 
         if (state == PlaybackStateCompat.STATE_PLAYING) {
+            Log.d(TAG, "updatePlaybackState: playing");
 //            Notification notification = postNotification();
 //            startForeground(NOTIFICATION_ID, notification);
             mAudioBecomingNoisyReceiver.register();
@@ -245,6 +247,13 @@ public class MusicService extends MediaBrowserServiceCompat {
         mDelayedStopHandler.sendEmptyMessage(STOP_CMD);
 
         updatePlaybackState(null);
+    } private void handlePauseRequest() {
+        Log.d(TAG, "handlePauseRequest: mState=" + mPlayback.getState());
+        mPlayback.pause();
+
+        // reset the delayed stop handler.
+        mDelayedStopHandler.removeCallbacksAndMessages(null);
+        mDelayedStopHandler.sendEmptyMessageDelayed(STOP_CMD, STOP_DELAY);
     }
 
     private void updateMetadata() {
@@ -350,7 +359,7 @@ public class MusicService extends MediaBrowserServiceCompat {
         @Override
         public void onPause() {
             super.onPause();
-            Log.d(TAG, "onPause: ");
+            Log.d(TAG, "onPause: ");handlePauseRequest();
         }
 
         @Override
