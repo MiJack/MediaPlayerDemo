@@ -158,8 +158,7 @@ public class MusicListFragment extends BaseFragment implements SwipeRefreshLayou
         mMediaBrowser = new MediaBrowserCompat(getActivity(),
                 new ComponentName(getActivity(), MusicService.class),
                 mConnectionCallback, null);
-
-     }
+    }
 
     @Override
     public void onStart() {

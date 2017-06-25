@@ -84,7 +84,7 @@ public class Playback implements AudioManager.OnAudioFocusChangeListener,
 
     }
 
-    public void play(MediaSessionCompat.QueueItem item, Song song) {
+    public void play(Song song) {
 //        mPlayOnFocusGain = true;
 //        tryToGetAudioFocus();
         String mediaId = String.valueOf(song.getId());
@@ -161,7 +161,30 @@ public class Playback implements AudioManager.OnAudioFocusChangeListener,
 
     @Override
     public void onAudioFocusChange(int focusChange) {
+        Log.d(TAG, "onAudioFocusChange. focusChange=" + focusChange);
+        if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
+            // We have gained focus:
+            mAudioFocus = AUDIO_FOCUSED;
 
+        } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS
+                || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT
+                || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+            // We have lost focus. If we can duck (low playback volume), we can keep playing.
+            // Otherwise, we need to pause the playback.
+            boolean canDuck = focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK;
+            mAudioFocus = canDuck ? AUDIO_NO_FOCUS_CAN_DUCK : AUDIO_NO_FOCUS_NO_DUCK;
+
+            // If we are playing, we need to reset media player by calling configMediaPlayerState
+            // with mAudioFocus properly set.
+            if (mState == PlaybackStateCompat.STATE_PLAYING && !canDuck) {
+                // If we don't have audio focus and can't duck, we save the information that
+                // we were playing, so that we can resume playback once we get the focus back.
+//                mPlayOnFocusGain = true;
+            }
+        } else {
+            Log.e(TAG, "onAudioFocusChange: Ignoring unsupported focusChange: " + focusChange);
+        }
+        configMediaPlayerState();
     }
 
     @Override

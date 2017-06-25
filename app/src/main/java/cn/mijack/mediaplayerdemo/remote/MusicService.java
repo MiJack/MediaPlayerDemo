@@ -236,7 +236,7 @@ public class MusicService extends MediaBrowserServiceCompat {
         }
 
         updateMetadata();
-        mPlayback.play(mCurrentMedia,song);
+        mPlayback.play(song);
     }
 
     private void handleStopRequest() {
