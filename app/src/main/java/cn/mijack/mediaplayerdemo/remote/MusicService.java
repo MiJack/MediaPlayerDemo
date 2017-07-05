@@ -25,6 +25,9 @@ import android.support.v4.media.session.MediaButtonReceiver;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,20 +50,17 @@ public class MusicService extends MediaBrowserServiceCompat {
     private AudioBecomingNoisyReceiver mAudioBecomingNoisyReceiver;
     private boolean mServiceStarted;
     private MediaSessionCompat.QueueItem mCurrentMedia;
-    private Handler mDelayedStopHandler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(Message msg) {
-            if (msg == null || msg.what != STOP_CMD) {
-                return false;
-            }
+    private Handler mDelayedStopHandler = new Handler(msg -> {
+        if (msg == null || msg.what != STOP_CMD) {
+            return false;
+        }
 
 //            if (!mPlayback.isPlaying()) {
 //                Log.d(TAG, "Stopping service");
 //                stopSelf();
 //                mServiceStarted = false;
 //            }
-            return false;
-        }
+        return false;
     });
     private Song song;
 

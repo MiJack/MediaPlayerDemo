@@ -24,7 +24,9 @@
         <activity
             android:name=".ui.MainActivity"
             android:theme="@style/AppTheme.NoActionBar" />
-
+        <activity
+            android:name=".ui.FullScreenPlayerActivity"
+            android:theme="@style/AppTheme.NoActionBar" />
         <service
             android:name=".remote.MusicService"
             android:exported="true">

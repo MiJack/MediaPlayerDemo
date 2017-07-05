@@ -1,9 +1,12 @@
 package cn.mijack.mediaplayerdemo.utils;
 
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.Bundle;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Set;
 
 /**
@@ -58,5 +61,16 @@ public class Utils {
             return String.format("%d GB", size);
         }
         return null;
+    }
+
+    public static void close(Closeable... closeables) {
+        if (closeables==null){return;}
+        for (Closeable closeable:closeables){
+            try {
+                closeable.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

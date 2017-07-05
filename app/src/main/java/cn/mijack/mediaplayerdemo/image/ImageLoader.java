@@ -87,7 +87,7 @@ public class ImageLoader {
             options.inJustDecodeBounds = true;
             BitmapFactory.decodeByteArray(data, 0, data.length, options);
             options.inJustDecodeBounds = false;
-            options.inSampleSize = Math.max(options.outHeight / 64, options.outWidth / 64);
+            options.inSampleSize = Math.max(options.outHeight / 128, options.outWidth / 128);
             return data != null ? BitmapFactory.decodeByteArray(data, 0, data.length, options) :
                     null;
         }
