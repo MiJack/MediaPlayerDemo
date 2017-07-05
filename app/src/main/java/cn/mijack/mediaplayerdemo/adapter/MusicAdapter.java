@@ -51,10 +51,10 @@ public class MusicAdapter extends RecyclerView.Adapter {
 
     @Override
     public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-        TextView songName = (TextView) holder.itemView.findViewById(R.id.songName);
-        TextView singer = (TextView) holder.itemView.findViewById(R.id.singer);
-        ImageView coverart = (ImageView) holder.itemView.findViewById(R.id.musicIcon);
-        ImageView icon = (ImageView) holder.itemView.findViewById(R.id.icon);
+        TextView songName = holder.itemView.findViewById(R.id.songName);
+        TextView singer = holder.itemView.findViewById(R.id.singer);
+        ImageView coverart = holder.itemView.findViewById(R.id.musicIcon);
+        ImageView icon = holder.itemView.findViewById(R.id.icon);
         Song song = data.get(position);
         String songId = String.valueOf(song.getId());
         boolean playing = songId.equals(getPlayingMediaId());
@@ -75,21 +75,6 @@ public class MusicAdapter extends RecyclerView.Adapter {
                 controls.playFromMediaId(songId, extras);
             }
         });
-//            holder.mImageView.setImageDrawable(getContext().getResources()
-//                    .getDrawable(playRes));
-//            holder.mImageView.setVisibility(View.VISIBLE);
-//        }
-//        new Thread() {
-//            @Override
-//            public void run() {
-//                MediaMetadataRetriever mmr = new MediaMetadataRetriever();
-//                mmr.setDataSource(song.getData());
-//                byte[] data = mmr.getEmbeddedPicture();
-//                Bitmap bitmap = data != null ? BitmapFactory.decodeByteArray(data, 0, data.length) :
-//                        BitmapFactory.decodeResource(coverart.getResources(), R.drawable.ic_audiotrack);
-//                coverart.post(() -> coverart.setImageBitmap(bitmap));
-//            }
-//        }.start();
     }
 
     @Override

@@ -146,8 +146,8 @@ public class MusicListFragment extends BaseFragment implements SwipeRefreshLayou
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        recyclerView = (RecyclerView) view.findViewById(R.id.recyclerView);
-        refreshLayout = (SwipeRefreshLayout) view.findViewById(R.id.refreshView);
+        recyclerView = view.findViewById(R.id.recyclerView);
+        refreshLayout = view.findViewById(R.id.refreshView);
         refreshLayout.setOnRefreshListener(this);
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getActivity());
         recyclerView.setLayoutManager(linearLayoutManager);

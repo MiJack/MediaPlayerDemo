@@ -29,15 +29,16 @@ public class ImageLoader {
     private ImageLoader() {
         long maxMemory = Runtime.getRuntime().maxMemory();
         int cacheSize = (int) (maxMemory / 8);
-        Log.d(TAG, "ImageLoader: cacheSize:" + cacheSize);
+        Log.d(TAG, "ImageLoader: cacheSize:" + Utils.formatByteSize(cacheSize));
         lruCache = new LruCache<String, Bitmap>(cacheSize) {
             @Override
             protected int sizeOf(String key, Bitmap value) {
-                return value.getByteCount();
+                return Utils.bitmapSize(value);
             }
 
             @Override
             protected void entryRemoved(boolean evicted, String key, Bitmap oldValue, Bitmap newValue) {
+                Log.d(TAG, "entryRemoved: remove->" + Utils.formatByteSize(Utils.bitmapSize(oldValue)) + ", then:" + Utils.formatByteSize(size()));
             }
         };
     }
@@ -63,6 +64,7 @@ public class ImageLoader {
             coverart.setImageBitmap(bitmap);
             return;
         }
+        coverart.setImageResource(R.drawable.ic_audiotrack);
         LoadMusicCoverTask loadMusicCoverTask = new LoadMusicCoverTask(coverart, data);
         loadMusicCoverTask.execute();
     }
@@ -81,7 +83,12 @@ public class ImageLoader {
             MediaMetadataRetriever mmr = new MediaMetadataRetriever();
             mmr.setDataSource(data);
             byte[] data = mmr.getEmbeddedPicture();
-            return data != null ? BitmapFactory.decodeByteArray(data, 0, data.length) :
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inJustDecodeBounds = true;
+            BitmapFactory.decodeByteArray(data, 0, data.length, options);
+            options.inJustDecodeBounds = false;
+            options.inSampleSize = Math.max(options.outHeight / 64, options.outWidth / 64);
+            return data != null ? BitmapFactory.decodeByteArray(data, 0, data.length, options) :
                     null;
         }
 
@@ -113,6 +120,10 @@ public class ImageLoader {
     }
 
     private void addBitmap(String data, Bitmap bitmap) {
+        Log.d(TAG, "addBitmap: bitmap size=" + Utils.formatByteSize(Utils.bitmapSize(bitmap))
+                + ", width:" + bitmap.getWidth()
+                + ", height:" + bitmap.getHeight()
+        );
         lruCache.put(data, bitmap);
     }
 }
